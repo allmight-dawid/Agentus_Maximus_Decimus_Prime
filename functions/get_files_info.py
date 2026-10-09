@@ -26,3 +26,21 @@ def get_files_info(working_directory: str, directory: str = ".") -> str:
         return f'Success: "{directory}" is within the working directory' + f"\n{dir_content}"
     except PathException as e:
         return f"Error: {e}"
+
+# JSON schema for the LLM to use as a tool
+schema_get_files_info = {
+    "type": "function",
+    "function": {
+        "name": "get_files_info",
+        "description": "Lists files in a directory relative to working dir, providing file size and dir status",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "directory": {
+                    "type": "string",
+                    "description": "Directory path to list files from (relative to working directory, default is the work dir itself)",
+                },
+            },
+        },
+    },
+}

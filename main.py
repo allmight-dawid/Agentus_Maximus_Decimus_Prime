@@ -1,21 +1,35 @@
 import argparse
+import json
 import os
 
 from dotenv import load_dotenv
 from openai import OpenAI
 
+from call_function import available_functions
+from prompts import system_prompt
 
-def generate_content(client: OpenAI, messages, verbose: bool):
+
+def generate_content(client: OpenAI, messages: list, verbose: bool):
     response = client.chat.completions.create(
         model = "openrouter/free",
-        messages = messages
+        messages = messages,
+        tools=available_functions,
     )
+    # Checking if any tool calls are present, if so, printing them
+    tool_calls = response.choices[0].message.tool_calls
+    if tool_calls:
+        for tool_call in tool_calls:
+            function_args = json.loads(tool_call.function.arguments or "{}")
+            return print(f"Calling function: {tool_call.function.name}({function_args})")
 
-    if response != None and verbose == True:
+    if response is not None and verbose == True:
         return print(
-            f"User prompt: {messages[0]["content"]}\nPrompt tokens: {response.usage.prompt_tokens}\nResponse tokens: {response.usage.completion_tokens}\n{response.choices[0].message.content}"
+            f"""User prompt: {messages[1]["content"]}\n
+            Prompt tokens: {response.usage.prompt_tokens}\n
+            Response tokens: {response.usage.completion_tokens}\n
+            {response.choices[0].message.content}"""
         )
-    elif response != None:
+    elif response is not None:
         return print(response.choices[0].message.content)
     else:
         raise RuntimeError("Failed API request, please try again and/or later")
@@ -44,9 +58,13 @@ def main():
     # Creating a dict of roles & corresponding responses
     messagium_agentum = [
         {
+            "role": "system",
+            "content": system_prompt
+        },
+        {
             "role": "user",
             "content": args.prompt
-        },
+        }
     ]
 
     # Generating a response
